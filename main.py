@@ -1,59 +1,52 @@
 import tkinter as tk
+import tkinter.messagebox as messagebox
+import random
 
-
-class BingoGUI:
+class BingoGame:
     def __init__(self, master):
         self.master = master
-        master.title("Bingo Game")
+        self.master.title("Bingo Game")
+        self.cards = []
+        self.bingo_check = [[False]*5 for _ in range(5)]
+        self.players = {'a': 'Player 1', 'b': 'Player 2', 'c': 'Player 3', 'd': 'Player 4'}
+        self.create_widgets()
+        self.generate_cards()
 
-        self.b = [
-            [5, 5, 5, 1, 3],
-            [3, 5, 5, 3, 1],
-            [4, 3, 3, 2, 1],
-            [4, 0, 1, 0, 1],
-            [1, 2, 2, 0, 2]
-        ]
-        self.players = {'a': set(), 'b': set(), 'c': set(), 'd': set()}
-        self.player_names = {'a': 'player A',
-                             'b': 'player B', 'c': 'player C', 'd': 'player D'}
-
-        self.result_label = tk.Label(master, text="")
-        self.result_label.grid(row=0, column=0, columnspan=5)
-
-        self.buttons = []
+    def create_widgets(self):
+        self.info_label = tk.Label(self.master, text="Click on a number to draw", font=("Arial", 12))
+        self.info_label.grid(row=0, column=0, columnspan=5, pady=10)
+        self.number_buttons = [[tk.Button(self.master, text=str(i*5 + j), width=5, height=2, command=lambda x=i, y=j: self.check_number(x, y)) for j in range(5)] for i in range(5)]
         for i in range(5):
             for j in range(5):
-                btn = tk.Button(master, text=self.b[i][j], width=5, height=2,
-                                command=lambda row=i, col=j: self.button_click(row, col))
-                btn.grid(row=i+1, column=j)
-                self.buttons.append(btn)
+                self.number_buttons[i][j].grid(row=i+1, column=j, padx=5, pady=5)
 
-    def button_click(self, row, col):
-        number = self.b[row][col]
-        for player, card in self.players.items():
-            if number in card:
-                card.remove(number)
-                if self.check_bingo(card):
-                    self.result_label.config(
-                        text=f"Bingo!! {self.player_names[player]} wins!")
-                    for btn in self.buttons:
-                        btn.config(state=tk.DISABLED)
-                    return
+    def generate_cards(self):
+        for _ in range(4):
+            card = [[random.randint(i*15+1, (i+1)*15) for _ in range(5)] for i in range(5)]
+            self.cards.append(card)
 
-    def check_bingo(self, card):
-        lines = [
-            card,  # Horizontal
-            {self.b[i][j]
-                for i in range(5) for j in range(5) if j == i},  # Diagonal 1
-            {self.b[i][j] for i in range(5) for j in range(
-                5) if j == 4 - i},  # Diagonal 2
-        ]
-        for line in lines:
-            if len(line) == 0:
-                return True
-        return False
+    def check_number(self, row, col):
+        number = self.cards[0][row][col]
+        for i, card in enumerate(self.cards):
+            for j in range(5):
+                if card[row][j] == number:
+                    self.bingo_check[i][j] = True
+                if card[j][col] == number:
+                    self.bingo_check[i][j] = True
+            if all(self.bingo_check[i][j] for j in range(5)):  # horizontal bingo check
+                self.handle_bingo(self.players['abcd'[i]])
+                return
+            if all(self.bingo_check[i][i] for i in range(5)):  # diagonal bingo check
+                self.handle_bingo(self.players['abcd'[i]])
+                return
+            if all(self.bingo_check[i][4-i] for i in range(5)):  # reverse diagonal bingo check
+                self.handle_bingo(self.players['abcd'[i]])
+                return
 
+    def handle_bingo(self, player):
+        messagebox.showinfo("Bingo!", f"{player} got BINGO!")
+        self.master.destroy()
 
 root = tk.Tk()
-app = BingoGUI(root)
+bingo_game = BingoGame(root)
 root.mainloop()
